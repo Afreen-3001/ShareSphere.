@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="ShareSphere connects donors with community organizations to share useful items." />
+  <title>ShareSphere — Give More, Waste Less</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#home" aria-label="ShareSphere home">
+      <span class="brand-mark" aria-label="ShareSphere logo">
+  <svg xmlns="http://www.w3.org/2000/svg"
+       viewBox="0 0 64 64" width="48" height="48">
+    <path d="M5 34 L18 23 Q22 20 27 27 L32 32"
+          fill="none" stroke="#16865c" stroke-width="6"
+          stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M59 34 L46 23 Q42 20 37 27 L32 32"
+          fill="none" stroke="#16865c" stroke-width="6"
+          stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M32 50 C26 44 17 37 17 30
+             C17 21 27 19 32 27
+             C37 19 47 21 47 30
+             C47 37 38 44 32 50Z"
+          fill="#f59e0b"/>
+    <path d="M7 42 L20 49 Q25 52 29 47
+             M57 42 L44 49 Q39 52 35 47"
+          fill="none" stroke="#16865c" stroke-width="5"
+          stroke-linecap="round"/>
+  </svg>
+</span>
+      <span class="brand-name">Share<span>Sphere</span><small>Give more. Waste less.</small></span>
+    </a>
+
+    <button class="menu-toggle" id="menuToggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+
+    <nav class="nav-links" id="navLinks">
+      <a href="#home">Home</a>
+      <a href="#donations">Explore donations</a>
+      <a href="#how-it-works">How it works</a>
+      <button class="btn btn-outline" id="loginBtn">Log in</button>
+      <button class="btn btn-primary" id="joinBtn">Join ShareSphere</button>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero section" id="home">
+      <div class="hero-copy">
+        <div class="eyebrow"><span class="eyebrow-dot"></span> SMALL ACTS. BIG IMPACT.</div>
+        <h1>Give useful things<br />a <span>second life.</span></h1>
+        <p class="hero-text">
+          Share food, clothes, books, and everyday essentials with people and community organizations who can use them.
+        </p>
+        <div class="hero-actions">
+          <button class="btn btn-primary btn-large" id="heroDonateBtn">Share an item <span>↗</span></button>
+          <a class="btn btn-soft btn-large" href="#donations">Explore donations <span>↓</span></a>
+        </div>
+        <div class="hero-trust">
+          <span class="avatar-stack"><i>A</i><i>N</i><i>S</i></span>
+          <span><strong id="communityCount">120+</strong> acts of kindness start with one share.</span>
+        </div>
+      </div>
+
+      <div class="hero-art" aria-label="Illustration of sharing useful items">
+        <div class="art-orbit orbit-one"></div>
+        <div class="art-orbit orbit-two"></div>
+        <div class="art-note note-top">♻ Give items a new home</div>
+        <div class="art-card art-card-main">
+          <div class="illustration-scene">
+            <div class="sun"></div>
+            <div class="plant plant-one">✦</div>
+            <div class="box-illustration"><div class="box-flap"></div><span>♡</span></div>
+            <div class="shirt">⌁</div>
+            <div class="book book-one"></div>
+            <div class="book book-two"></div>
+          </div>
+          <div class="art-card-footer">
+            <span class="mini-heart">♥</span>
+            <div><strong>Good things, shared</strong><small>One community, many possibilities</small></div>
+            <span class="arrow-circle">↗</span>
+          </div>
+        </div>
+        <div class="art-note note-bottom"><span>●</span> Kindness is always in season</div>
+      </div>
+    </section>
+
+    <section class="impact-strip">
+      <div><strong>01</strong><span>Share what you can</span></div>
+      <div><strong>02</strong><span>Connect with your community</span></div>
+      <div><strong>03</strong><span>Make a little difference</span></div>
+    </section>
+
+    <section class="section donations-section" id="donations">
+      <div class="section-heading">
+        <div>
+          <div class="eyebrow">COMMUNITY MARKETPLACE</div>
+          <h2>Find something <span>meaningful.</span></h2>
+          <p>Browse items shared by people in the community.</p>
+        </div>
+        <button class="btn btn-outline" id="allDonationsBtn">Share an item +</button>
+      </div>
+
+      <div class="search-row">
+        <label class="search-box">
+          <span>⌕</span>
+          <input id="searchInput" type="search" placeholder="Search food, books, clothes..." aria-label="Search donations" />
+        </label>
+        <select id="categoryFilter" aria-label="Filter by category">
+          <option value="All">All categories</option>
+          <option>Food</option>
+          <option>Clothes</option>
+          <option>Books</option>
+          <option>Electronics</option>
+          <option>Home items</option>
+          <option>Other</option>
+        </select>
+      </div>
+
+      <div class="donation-grid" id="donationGrid" aria-live="polite"></div>
+      <p class="empty-state hidden" id="emptyState">No items match your search yet. Try another word or category.</p>
+    </section>
+
+    <section class="how-section" id="how-it-works">
+      <div class="section narrow-heading">
+        <div class="eyebrow">SIMPLE BY DESIGN</div>
+        <h2>Sharing is easier <span>together.</span></h2>
+        <p>Three simple steps can turn unused items into useful opportunities.</p>
+      </div>
+      <div class="steps-grid">
+        <article class="step-card">
+          <div class="step-icon icon-mint">↗</div>
+          <span class="step-number">STEP 01</span>
+          <h3>Post what you can share</h3>
+          <p>Add a title, category, and a short description of your available item.</p>
+        </article>
+        <article class="step-card">
+          <div class="step-icon icon-peach">♡</div>
+          <span class="step-number">STEP 02</span>
+          <h3>Connect with others</h3>
+          <p>Community members and NGOs can browse listings and send a request.</p>
+        </article>
+        <article class="step-card">
+          <div class="step-icon icon-lilac">✦</div>
+          <span class="step-number">STEP 03</span>
+          <h3>Make a positive impact</h3>
+          <p>Coordinate collection directly and help useful things reach someone who needs them.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="cta-section section">
+      <div>
+        <div class="eyebrow">YOUR COMMUNITY NEEDS YOU</div>
+        <h2>Have something to give?</h2>
+        <p>It doesn't have to be big to make a difference.</p>
+      </div>
+      <button class="btn btn-light btn-large" id="ctaJoinBtn">Join the community <span>↗</span></button>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+  <div class="footer-main">
+    <a class="brand footer-brand" href="#home">
+   <span class="brand-mark" aria-label="ShareSphere logo">
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 64 64"
+    width="48"
+    height="48"
+    role="img"
+    aria-label="Hands sharing a heart"
+  >
+    <path d="M5 36 L17 25 Q20 22 24 26 L31 33"
+      fill="none" stroke="#16865c" stroke-width="6"
+      stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M59 36 L47 25 Q44 22 40 26 L33 33"
+      fill="none" stroke="#16865c" stroke-width="6"
+      stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M32 49 C27 44 17 37 17 29
+      C17 20 28 18 32 26
+      C36 18 47 20 47 29
+      C47 37 37 44 32 49 Z"
+      fill="#f59e0b"/>
+    <path d="M8 42 L19 49 Q23 52 28 49
+      M56 42 L45 49 Q41 52 36 49"
+      fill="none" stroke="#16865c" stroke-width="5"
+      stroke-linecap="round"/>
+  </svg>
+</span>
+        <span class="brand-name">
+        Share<span>Sphere</span>
+        <small>Give more. Waste less.</small>
+      </span>
+    </a>
+
+    <p class="footer-description">
+      Connecting generous donors with communities and organizations
+      to give useful items a second life.
+    </p>
+
+    <nav class="footer-links" aria-label="Footer navigation">
+      <a href="#home">Home</a>
+      <a href="#donations">Explore donations</a>
+      <a href="#how-it-works">How it works</a>
+      <button type="button" id="footerJoinBtn" text color="green">Join our community</button>
+    </nav>
+  </div>
+
+  <div class="footer-bottom">
+    <span>© <span id="year"></span> ShareSphere. All rights reserved.</span>
+    <span>Made for a community that cares ♡</span>
+  </div>
+</footer>
+
+  <dialog class="modal" id="roleDialog">
+    <button class="modal-close" data-close aria-label="Close">×</button>
+    <div class="modal-kicker">LET'S GET STARTED</div>
+    <h2>How would you like to join?</h2>
+    <p>Choose the option that best describes you.</p>
+    <div class="role-options">
+      <button class="role-option" data-role="Donor">
+        <span class="role-emoji">🎁</span>
+        <span><strong>I'm a donor</strong><small>I want to share useful items.</small></span>
+        <b>→</b>
+      </button>
+      <button class="role-option" data-role="NGO">
+        <span class="role-emoji">🤝</span>
+        <span><strong>I'm an NGO</strong><small>Our organization needs items.</small></span>
+        <b>→</b>
+      </button>
+    </div>
+  </dialog>
+
+  <dialog class="modal" id="authDialog">
+    <button class="modal-close" data-close aria-label="Close">×</button>
+    <div class="modal-kicker" id="authKicker">YOUR COMMUNITY ACCOUNT</div>
+    <h2 id="authTitle">Welcome back</h2>
+    <p id="authDescription">Log in to continue sharing.</p>
+    <form id="authForm">
+      <label id="nameField" class="form-field hidden">Full name
+        <input id="fullName" autocomplete="name" placeholder="Enter your name" />
+      </label>
+      <label id="orgField" class="form-field hidden">Organization name
+        <input id="orgName" placeholder="Enter NGO name" />
+      </label>
+      <label class="form-field">Email address
+        <input id="email" type="email" autocomplete="email" placeholder="you@example.com" required />
+      </label>
+      <label class="form-field">Password
+        <input id="password" type="password" autocomplete="current-password" minlength="4" placeholder="At least 4 characters" required />
+      </label>
+      <button class="btn btn-primary form-submit" id="authSubmit" type="submit">Log in</button>
+    </form>
+    <p class="form-switch" id="authSwitch">New to ShareSphere? <button type="button" id="switchToRegister">Create an account</button></p>
+    <p class="demo-note">Demo only: account details are saved in this browser, not on a server.</p>
+  </dialog>
+
+  <dialog class="modal" id="donationDialog">
+    <button class="modal-close" data-close aria-label="Close">×</button>
+    <div class="modal-kicker">PASS IT FORWARD</div>
+    <h2>Share an item</h2>
+    <p>Tell the community what you have available.</p>
+    <form id="donationForm">
+      <label class="form-field">Item title
+        <input id="itemTitle" placeholder="e.g. Gently used school books" required maxlength="70" />
+      </label>
+      <label class="form-field">Category
+        <select id="itemCategory" required>
+          <option value="">Choose a category</option>
+          <option>Food</option><option>Clothes</option><option>Books</option>
+          <option>Electronics</option><option>Home items</option><option>Other</option>
+        </select>
+      </label>
+      <label class="form-field">Description
+        <textarea id="itemDescription" placeholder="Describe the item's condition and details..." required maxlength="240" rows="3"></textarea>
+      </label>
+      <label class="form-field">Area / pickup location
+        <input id="itemLocation" placeholder="e.g. Multan Cantt" required maxlength="70" />
+      </label>
+      <button class="btn btn-primary form-submit" type="submit">Publish donation</button>
+    </form>
+    <p class="demo-note">Listings are stored locally in this browser for demonstration.</p>
+  </dialog>
+
+  <dialog class="modal" id="requestDialog">
+    <button class="modal-close" data-close aria-label="Close">×</button>
+    <div class="modal-kicker">COMMUNITY REQUEST</div>
+    <h2>Request this item</h2>
+    <p id="requestItemName">Send a request to the donor.</p>
+    <form id="requestForm">
+      <label class="form-field">Your name or organization
+        <input id="requesterName" required placeholder="Enter your name" />
+      </label>
+      <label class="form-field">Contact email
+        <input id="requesterEmail" type="email" required placeholder="you@example.com" />
+      </label>
+      <label class="form-field">Message
+        <textarea id="requestMessage" rows="3" placeholder="Tell the donor why this item would help." maxlength="240"></textarea>
+      </label>
+      <button class="btn btn-primary form-submit" type="submit">Send request</button>
+    </form>
+    <p class="demo-note">This is a local demo. It does not send a real email.</p>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
