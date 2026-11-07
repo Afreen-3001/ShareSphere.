@@ -1,13 +1,69 @@
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
 
-const API = "api/";
+const STORAGE = {
+  accounts: "sharesphere_demo_accounts_v1",
+  donations: "sharesphere_demo_donations_v1",
+  session: "sharesphere_demo_session_v1",
+  requests: "sharesphere_demo_requests_v1"
+};
 
-let selectedRole = "Donor";
-let authMode = "login";
-let activeRequestItem = null;
-let donations = [];
-let toastTimer;
+const starterDonations = [
+  {
+    id: "seed-1",
+    title: "Fresh grocery bundle",
+    category: "Food",
+    description: "A small bundle of sealed pantry essentials for a household.",
+    location: "Multan Cantt",
+    donor: "Community donor",
+    emoji: "🥫"
+  },
+  {
+    id: "seed-2",
+    title: "Warm winter clothes",
+    category: "Clothes",
+    description: "Clean, gently used sweaters and shawls ready for a new home.",
+    location: "Mumtazabad, Multan",
+    donor: "Community donor",
+    emoji: "🧥"
+  },
+  {
+    id: "seed-3",
+    title: "School books bundle",
+    category: "Books",
+    description: "Useful school books and notebooks for students.",
+    location: "Shah Rukn-e-Alam, Multan",
+    donor: "Community donor",
+    emoji: "📚"
+  },
+  {
+    id: "seed-4",
+    title: "Study headphones",
+    category: "Electronics",
+    description: "A working pair of headphones for study.",
+    location: "Multan",
+    donor: "Community donor",
+    emoji: "🎧"
+  },
+  {
+    id: "seed-5",
+    title: "Kitchen essentials",
+    category: "Home items",
+    description: "Clean, reusable household items in good condition.",
+    location: "Bosan Road, Multan",
+    donor: "Community donor",
+    emoji: "🍽️"
+  },
+  {
+    id: "seed-6",
+    title: "Art and craft supplies",
+    category: "Other",
+    description: "Paper, pencils, and craft materials for creative projects.",
+    location: "Multan",
+    donor: "Community donor",
+    emoji: "🎨"
+  }
+];
 
 const categoryEmoji = {
   Food: "🥫",
@@ -18,62 +74,59 @@ const categoryEmoji = {
   Other: "🎁"
 };
 
-// ---------- API CONNECTION ----------
+let selectedRole = "Donor";
+let authMode = "login";
+let activeRequestItem = null;
+let toastTimer;
 
-async function apiRequest(file, method = "GET", data = null) {
-  const options = {
-    method,
-    headers: { "Content-Type": "application/json" }
-  };
-
-  if (data !== null) {
-    options.body = JSON.stringify(data);
+function readStore(key, fallback) {
+  try {
+    const value = localStorage.getItem(key);
+    return value ? JSON.parse(value) : fallback;
+  } catch {
+    return fallback;
   }
-
-  const response = await fetch(API + file, options);
-  const result = await response.json();
-
-  if (!response.ok || !result.success) {
-    throw new Error(result.message || "Something went wrong.");
-  }
-
-  return result;
 }
 
-// ---------- USER SESSION ----------
+function writeStore(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+    return true;
+  } catch {
+    showToast("Could not save data in this browser.");
+    return false;
+  }
+}
+
+function getDonations() {
+  const saved = readStore(STORAGE.donations, null);
+
+  if (saved === null) {
+    writeStore(STORAGE.donations, starterDonations);
+    return [...starterDonations];
+  }
+
+  return Array.isArray(saved) ? saved : [...starterDonations];
+}
 
 function getSession() {
-  try {
-    return JSON.parse(localStorage.getItem("sharesphere_session"));
-  } catch {
-    return null;
-  }
+  return readStore(STORAGE.session, null);
 }
 
 function currentAccount() {
-  return getSession();
+  const session = getSession();
+
+  if (!session) return null;
+
+  return readStore(STORAGE.accounts, []).find(
+    account => account.id === session.accountId
+  ) || null;
 }
-
-function saveSession(user) {
-  localStorage.setItem("sharesphere_session", JSON.stringify(user));
-}
-
-function clearSession() {
-  localStorage.removeItem("sharesphere_session");
-}
-
-function updateHeader() {
-  const account = currentAccount();
-
-  $("#loginBtn").textContent = account ? "Log out" : "Log in";
-  $("#joinBtn").textContent = account ? "My account" : "Join ShareSphere";
-  $("#communityCount").textContent = "120+";
-}
-
-// ---------- TOAST AND DIALOGS ----------
 
 function showToast(message) {
   const toast = $("#toast");
+  if (!toast) return;
+
   toast.textContent = message;
   toast.classList.add("show");
 
@@ -96,8 +149,77 @@ function closeDialog(dialog) {
   if (dialog?.open) dialog.close();
 }
 
-function openRoleDialog() {
-  openDialog("roleDialog");
+function escapeHTML(value) {
+  return String(value ?? "").replace(/[&<>"']/g, character => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  }[character]));
+}
+
+function updateHeader() {
+  const account = currentAccount();
+
+  $("#loginBtn").textContent = account ? "Log out" : "Log in";
+  $("#joinBtn").textContent = account ? "My account" : "Join ShareSphere";
+
+  const accounts = readStore(STORAGE.accounts, []);
+  $("#communityCount").textContent = `${120 + accounts.length}+`;
+}
+
+function renderDonations() {
+  const query = $("#searchInput").value.trim().toLowerCase();
+  const category = $("#categoryFilter").value;
+
+  const items = getDonations().filter(item => {
+    const matchesCategory =
+      category === "All" || item.category === category;
+
+    const searchableText = [
+      item.title,
+      item.description,
+      item.location,
+      item.category,
+      item.donor
+    ].join(" ").toLowerCase();
+
+    return matchesCategory && searchableText.includes(query);
+  });
+
+  $("#donationGrid").innerHTML = items.map(item => {
+    const slug = item.category.toLowerCase().replaceAll(" ", "-");
+    const emoji = item.emoji || categoryEmoji[item.category] || "🎁";
+
+    return `
+      <article class="donation-card">
+        <div class="item-art ${slug}">
+          <span class="category-tag">${escapeHTML(item.category)}</span>
+          <span aria-hidden="true">${emoji}</span>
+        </div>
+
+        <div class="item-body">
+          <h3>${escapeHTML(item.title)}</h3>
+          <p>${escapeHTML(item.description)}</p>
+
+          <div class="item-meta">
+            <span>⌖ ${escapeHTML(item.location)}</span>
+            <span>♡ ${escapeHTML(item.donor || "Community donor")}</span>
+          </div>
+
+          <button
+            class="btn btn-primary request-button"
+            data-item-id="${escapeHTML(item.id)}"
+          >
+            Request item ↗
+          </button>
+        </div>
+      </article>
+    `;
+  }).join("");
+
+  $("#emptyState").classList.toggle("hidden", items.length > 0);
 }
 
 function openAuth(mode, role = selectedRole) {
@@ -119,6 +241,7 @@ function openAuth(mode, role = selectedRole) {
     : "Log in to continue sharing.";
 
   $("#nameField").classList.toggle("hidden", !isRegister);
+
   $("#orgField").classList.toggle(
     "hidden",
     !(isRegister && role === "NGO")
@@ -145,113 +268,24 @@ function openAuth(mode, role = selectedRole) {
   openDialog("authDialog");
 }
 
-function openRegisterForRole(role) {
-  selectedRole = role;
-  openAuth("register", role);
+function updateAuthView() {
+  const account = currentAccount();
+
+  $("#loginBtn").textContent = account ? "Log out" : "Log in";
+  $("#joinBtn").textContent = account ? "My account" : "Join ShareSphere";
 }
-
-// ---------- DONATIONS ----------
-
-function displayCategory(category) {
-  const categories = {
-    food: "Food",
-    clothes: "Clothes",
-    books: "Books",
-    electronics: "Electronics",
-    "home items": "Home items",
-    other: "Other"
-  };
-
-  return categories[String(category).toLowerCase()] || category;
-}
-
-async function loadDonations() {
-  try {
-    const result = await apiRequest("donations.php");
-
-    donations = result.donations
-      .filter(item => item.status === "available")
-      .map(item => ({
-        ...item,
-        category: displayCategory(item.category),
-        donor: item.donor_name || "Community donor",
-        emoji: categoryEmoji[displayCategory(item.category)] || "🎁"
-      }));
-
-    renderDonations();
-  } catch (error) {
-    showToast("Could not load donations. Check XAMPP and MySQL.");
-    console.error(error);
-  }
-}
-
-function renderDonations() {
-  const query = $("#searchInput").value.trim().toLowerCase();
-  const category = $("#categoryFilter").value;
-
-  const items = donations.filter(item => {
-    const matchesCategory =
-      category === "All" || item.category === category;
-
-    const searchableText =
-      `${item.title} ${item.description} ${item.location} ${item.category} ${item.donor}`.toLowerCase();
-
-    return matchesCategory && searchableText.includes(query);
-  });
-
-  $("#donationGrid").innerHTML = items.map(item => {
-    const slug = item.category.toLowerCase().replaceAll(" ", "-");
-
-    return `
-      <article class="donation-card">
-        <div class="item-art ${slug}">
-          <span class="category-tag">${escapeHTML(item.category)}</span>
-          <span aria-hidden="true">${item.emoji}</span>
-        </div>
-
-        <div class="item-body">
-          <h3>${escapeHTML(item.title)}</h3>
-          <p>${escapeHTML(item.description)}</p>
-
-          <div class="item-meta">
-            <span>⌖ ${escapeHTML(item.location)}</span>
-            <span>♡ ${escapeHTML(item.donor)}</span>
-          </div>
-
-          <button
-            class="btn btn-primary request-button"
-            data-item-id="${escapeHTML(item.id)}">
-            Request item ↗
-          </button>
-        </div>
-      </article>
-    `;
-  }).join("");
-
-  $("#emptyState").classList.toggle("hidden", items.length > 0);
-}
-
-function escapeHTML(value) {
-  return String(value ?? "").replace(/[&<>"']/g, char => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;"
-  }[char]));
-}
-
-// ---------- LOGIN AND LOGOUT ----------
 
 function handleLoginClick() {
   if (currentAccount()) {
-    clearSession();
-    updateHeader();
+    writeStore(STORAGE.session, null);
+    updateAuthView();
     showToast("You have logged out.");
   } else {
     openAuth("login");
   }
 }
+
+/* Header and navigation buttons */
 
 $("#loginBtn").addEventListener("click", handleLoginClick);
 
@@ -259,35 +293,29 @@ $("#joinBtn").addEventListener("click", () => {
   if (currentAccount()) {
     showToast(`Signed in as ${currentAccount().name}.`);
   } else {
-    openRoleDialog();
+    openDialog("roleDialog");
   }
 });
 
-// ---------- NAVIGATION ----------
-
 $("#heroDonateBtn").addEventListener("click", () => {
-  if (currentAccount()) {
-    openDialog("donationDialog");
-  } else {
-    openRoleDialog();
-  }
+  currentAccount()
+    ? openDialog("donationDialog")
+    : openDialog("roleDialog");
 });
 
 $("#allDonationsBtn").addEventListener("click", () => {
-  if (currentAccount()) {
-    openDialog("donationDialog");
-  } else {
-    openRoleDialog();
-  }
+  currentAccount()
+    ? openDialog("donationDialog")
+    : openDialog("roleDialog");
 });
 
 $("#ctaJoinBtn").addEventListener("click", () => {
-  if (currentAccount()) {
-    openDialog("donationDialog");
-  } else {
-    openRoleDialog();
-  }
+  currentAccount()
+    ? openDialog("donationDialog")
+    : openDialog("roleDialog");
 });
+
+/* Close modal buttons */
 
 $$("[data-close]").forEach(button => {
   button.addEventListener("click", () => {
@@ -297,221 +325,229 @@ $$("[data-close]").forEach(button => {
 
 $$("dialog").forEach(dialog => {
   dialog.addEventListener("click", event => {
-    if (event.target === dialog) closeDialog(dialog);
+    if (event.target === dialog) {
+      closeDialog(dialog);
+    }
   });
 });
+
+/* Donor and NGO role selection */
 
 $$("[data-role]").forEach(button => {
   button.addEventListener("click", () => {
-    openRegisterForRole(button.dataset.role);
+    openAuth("register", button.dataset.role);
   });
 });
 
-$("#navLinks a").forEach(link => {
+/* Mobile menu */
+
+$("#menuToggle").addEventListener("click", () => {
+  const isOpen = $("#navLinks").classList.toggle("open");
+
+  $("#menuToggle").setAttribute(
+    "aria-expanded",
+    String(isOpen)
+  );
+});
+
+$("#navLinks").querySelectorAll("a").forEach(link => {
   link.addEventListener("click", () => {
     $("#navLinks").classList.remove("open");
     $("#menuToggle").setAttribute("aria-expanded", "false");
   });
 });
 
-$("#menuToggle").addEventListener("click", () => {
-  const isOpen = $("#navLinks").classList.toggle("open");
-  $("#menuToggle").setAttribute("aria-expanded", String(isOpen));
-});
+/* Search and category filters */
 
 $("#searchInput").addEventListener("input", renderDonations);
 $("#categoryFilter").addEventListener("change", renderDonations);
 
-// ---------- SWITCH LOGIN / REGISTER AND REQUEST ITEM ----------
+/* Switch between login and registration */
 
 document.addEventListener("click", event => {
-  const registerButton = event.target.closest("#switchToRegister");
-  const loginButton = event.target.closest("#switchToLogin");
+  if (event.target.closest("#switchToRegister")) {
+    openAuth("register", selectedRole);
+  }
 
-  if (registerButton) openAuth("register", selectedRole);
-  if (loginButton) openAuth("login", selectedRole);
-
-  const requestButton = event.target.closest(".request-button");
-
-  if (requestButton) {
-    const item = donations.find(
-      donation => donation.id == requestButton.dataset.itemId
-    );
-
-    if (!item) {
-      return showToast("This donation could not be found.");
-    }
-
-    const account = currentAccount();
-
-    if (!account) {
-      showToast("Please log in first.");
-      openRoleDialog();
-      return;
-    }
-
-    if (account.role !== "ngo") {
-      showToast("Only NGO accounts can request donations.");
-      return;
-    }
-
-    activeRequestItem = item;
-
-    $("#requestItemName").textContent = `Request: ${item.title}`;
-    $("#requesterName").value = account.name || "";
-    $("#requesterEmail").value = account.email || "";
-
-    openDialog("requestDialog");
+  if (event.target.closest("#switchToLogin")) {
+    openAuth("login", selectedRole);
   }
 });
 
-// ---------- REGISTER AND LOGIN FORM ----------
+/* Account registration and login */
 
-$("#authForm").addEventListener("submit", async event => {
+$("#authForm").addEventListener("submit", event => {
   event.preventDefault();
 
   const email = $("#email").value.trim().toLowerCase();
   const password = $("#password").value;
+  let accounts = readStore(STORAGE.accounts, []);
 
-  try {
-    if (authMode === "register") {
-      const name = $("#fullName").value.trim();
-      const organization = $("#orgName").value.trim();
+  if (authMode === "register") {
+    const name = $("#fullName").value.trim();
+    const orgName = $("#orgName").value.trim();
 
-      if (!name) {
-        return showToast("Please enter your name.");
-      }
-
-      if (selectedRole === "NGO" && !organization) {
-        return showToast("Please enter your organization name.");
-      }
-
-      if (password.length < 8) {
-        return showToast("Password must contain at least 8 characters.");
-      }
-
-      const role = selectedRole.toLowerCase();
-
-      await apiRequest("register.php", "POST", {
-        name: name,
-        email: email,
-        password: password,
-        role: role,
-        organization_name: organization
-      });
-
-      // Log in after successful registration.
-      const loginResult = await apiRequest("login.php", "POST", {
-        email: email,
-        password: password
-      });
-
-      saveSession(loginResult.user);
-
-      closeDialog($("#authDialog"));
-      updateHeader();
-
-      showToast(`Welcome to ShareSphere, ${loginResult.user.name}!`);
-
-    } else {
-      const result = await apiRequest("login.php", "POST", {
-        email: email,
-        password: password
-      });
-
-      saveSession(result.user);
-
-      closeDialog($("#authDialog"));
-      updateHeader();
-
-      showToast(`Welcome back, ${result.user.name}!`);
+    if (!name) {
+      showToast("Please enter your name.");
+      return;
     }
 
-  } catch (error) {
-    showToast(error.message);
-    console.error(error);
+    if (selectedRole === "NGO" && !orgName) {
+      showToast("Please enter your organization name.");
+      return;
+    }
+
+    if (accounts.some(account => account.email === email)) {
+      showToast("This email already has an account. Please log in.");
+      return;
+    }
+
+    const account = {
+      id: `account-${Date.now()}`,
+      name,
+      orgName,
+      email,
+      password,
+      role: selectedRole
+    };
+
+    accounts.push(account);
+
+    if (!writeStore(STORAGE.accounts, accounts)) return;
+    if (!writeStore(STORAGE.session, { accountId: account.id })) return;
+
+    closeDialog($("#authDialog"));
+    updateHeader();
+
+    showToast(`Welcome to ShareSphere, ${name}!`);
+    return;
   }
+
+  const account = accounts.find(
+    item => item.email === email && item.password === password
+  );
+
+  if (!account) {
+    showToast("Incorrect details. Create an account first if you are new.");
+    return;
+  }
+
+  writeStore(STORAGE.session, { accountId: account.id });
+
+  closeDialog($("#authDialog"));
+  updateHeader();
+
+  showToast(`Welcome back, ${account.name}!`);
 });
 
-// ---------- PUBLISH DONATION ----------
+/* Publish a donation */
 
-$("#donationForm").addEventListener("submit", async event => {
+$("#donationForm").addEventListener("submit", event => {
   event.preventDefault();
 
   const account = currentAccount();
 
   if (!account) {
     closeDialog($("#donationDialog"));
-    return openRoleDialog();
+    openDialog("roleDialog");
+    showToast("Please join or log in before sharing an item.");
+    return;
   }
 
-  const category = $("#itemCategory").value.toLowerCase();
+  const category = $("#itemCategory").value;
 
-  try {
-    await apiRequest("donations.php", "POST", {
-      donor_id: account.id,
-      title: $("#itemTitle").value.trim(),
-      category: category,
-      description: $("#itemDescription").value.trim(),
-      location: $("#itemLocation").value.trim(),
-      quantity: "1",
-      condition_status: "good"
-    });
+  const item = {
+    id: `item-${Date.now()}`,
+    title: $("#itemTitle").value.trim(),
+    category,
+    description: $("#itemDescription").value.trim(),
+    location: $("#itemLocation").value.trim(),
+    donor: account.name || account.orgName || "Community member",
+    emoji: categoryEmoji[category] || "🎁"
+  };
 
-    $("#donationForm").reset();
-    closeDialog($("#donationDialog"));
+  const items = getDonations();
+  items.unshift(item);
 
-    $("#categoryFilter").value = "All";
-    $("#searchInput").value = "";
+  if (!writeStore(STORAGE.donations, items)) return;
 
-    await loadDonations();
+  $("#donationForm").reset();
+  closeDialog($("#donationDialog"));
 
-    showToast("Your donation has been saved to the database.");
+  $("#searchInput").value = "";
+  $("#categoryFilter").value = "All";
 
-    $("#donations").scrollIntoView({ behavior: "smooth" });
+  renderDonations();
 
-  } catch (error) {
-    showToast(error.message);
-    console.error(error);
-  }
+  showToast("Your item has been added to the donation listings.");
+
+  $("#donations").scrollIntoView({ behavior: "smooth" });
 });
 
-// ---------- REQUEST DONATION ----------
+/* Request a listed donation */
 
-$("#requestForm").addEventListener("submit", async event => {
-  event.preventDefault();
+document.addEventListener("click", event => {
+  const button = event.target.closest(".request-button");
+
+  if (!button) return;
+
+  const item = getDonations().find(
+    donation => donation.id === button.dataset.itemId
+  );
+
+  if (!item) {
+    showToast("This item could not be found.");
+    return;
+  }
 
   const account = currentAccount();
 
-  if (!account || !activeRequestItem) {
-    return showToast("Please log in and select a donation.");
+  if (!account) {
+    showToast("Please log in or join to request an item.");
+    openDialog("roleDialog");
+    return;
   }
 
-  try {
-    await apiRequest("requests.php", "POST", {
-      donation_id: activeRequestItem.id,
-      ngo_id: account.id,
-      message: $("#requestMessage").value.trim()
-    });
+  activeRequestItem = item;
 
-    $("#requestForm").reset();
-    closeDialog($("#requestDialog"));
+  $("#requestItemName").textContent = `Request: ${item.title}`;
+  $("#requesterName").value = account.name || account.orgName || "";
+  $("#requesterEmail").value = account.email || "";
 
-    activeRequestItem = null;
-
-    await loadDonations();
-
-    showToast("Your request has been saved to the database.");
-
-  } catch (error) {
-    showToast(error.message);
-    console.error(error);
-  }
+  openDialog("requestDialog");
 });
 
-// ---------- START WEBSITE ----------
+$("#requestForm").addEventListener("submit", event => {
+  event.preventDefault();
+
+  if (!activeRequestItem) return;
+
+  const requests = readStore(STORAGE.requests, []);
+
+  requests.push({
+    id: `request-${Date.now()}`,
+    itemId: activeRequestItem.id,
+    itemTitle: activeRequestItem.title,
+    requester: $("#requesterName").value.trim(),
+    email: $("#requesterEmail").value.trim(),
+    message: $("#requestMessage").value.trim(),
+    createdAt: new Date().toISOString()
+  });
+
+  if (!writeStore(STORAGE.requests, requests)) return;
+
+  $("#requestForm").reset();
+  closeDialog($("#requestDialog"));
+
+  activeRequestItem = null;
+
+  showToast("Your request has been saved in this browser.");
+});
+
+/* Start the website */
 
 $("#year").textContent = new Date().getFullYear();
 
+getDonations();
+renderDonations();
 updateHeader();
-loadDonations();
